@@ -1,33 +1,14 @@
-import Document, { Html, Head, Main, NextScript } from "next/document";
-import { NextUIProvider } from "@nextui-org/react";
+// pages/_document.js (optionnel mais correct pour Next.js 14+ et NextUI v2)
+import { Html, Head, Main, NextScript } from 'next/document';
 
-class MyDocument extends Document {
-  static async getInitialProps(ctx) {
-    const initialProps = await Document.getInitialProps(ctx);
-    return {
-      ...initialProps,
-    };
-  }
-
-  render() {
-    return (
-      <Html lang="en">
-        <Head>
-          {/* Inject NextUI CSS */}
-          <style
-            id="nextui-styles"
-            dangerouslySetInnerHTML={{
-              __html: require("@nextui-org/react").getCssText(),
-            }}
-          />
-        </Head>
-        <body>
-          <Main />
-          <NextScript />
-        </body>
-      </Html>
-    );
-  }
+export default function Document() {
+  return (
+    <html lang="fr">
+      <Head />
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </html>
+  );
 }
-
-export default MyDocument;
