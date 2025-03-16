@@ -1,20 +1,6 @@
-'use client';
+"use client";
 import React, { useEffect, useState } from "react";
 import styles from "../styles/Button.module.css";
-import {
-  Grid,
-  Container,
-  Image,
-  Card,
-  Spacer,
-  Text,
-  Row,
-  Col,
-  Button,
-  Badge,
-  Avatar,
-} from "@nextui-org/react";
-import "firebase/firestore";
 import { db, storage } from "../firebase";
 import {
   collection,
@@ -25,92 +11,114 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import CarCard from "./CarCard";
-import CarCardCrvEditMode from "./profiles/carCardEditMode/CarCardCrvEditMode";
-import CeCarCard from "./ceCarCard";
-import CarCardCeEditMode from "./profiles/carCardEditMode/CarCardCeEditMode";
-import CarCardSAD from "./CarCardSAD";
+
+// Composants MUI
+import {
+  Box,
+  Container,
+  Grid2,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+} from "@mui/material";
+
 import DptChoiceSAD from "./DptChoiceSAD";
+import CarCardSAD from "./CarCardSAD";
 
 export default function ModifierParc({ setOption, cars }) {
   const [editMode, setEditMode] = useState("ND");
 
-  return editMode === "ND" ? (
-    <Container justify="center">
-      <Grid.Container gap={0.5}>
-        <Grid xs={24} justify="center">
-          <Text size="$md" color="white">
-            Liste des vehicules
-          </Text>
-        </Grid>
-        <Grid.Container gap={2} justify="flex-start">
-          {/* Pour Ajouter un nouveau vehicule au parc */}
+  // === Affichage du "mode liste" ===
+  if (editMode === "ND") {
+    return (
+      <Container>
+        <Grid2 container spacing={0.5} justifyContent="center">
+          <Grid2 xs={12}>
+            <Typography variant="h6" color="white">
+              Liste des véhicules
+            </Typography>
+          </Grid2>
 
-          <Card
-            key="new"
-            xs={6}
-            sm={6}
-            md={4}
-            lg={3}
-            xl={3}
-            isPressable
-            onPress={() => setEditMode("Empty")}
+          <Grid2
+            container
+            spacing={2}
+            justifyContent="flex-start"
+            sx={{ mt: 1 }}
           >
-            <Card.Body>
-              <Card.Image
-                src="../public/AddSADCars.jpg"
-                objectFit="cover"
-                width="100%"
-                height={140}
-                alt="Ajouter"
-              />
-            </Card.Body>
-          </Card>
-          {/* Liste des vehicules dans la BDD */}
-          {cars &&
-            cars.map((car) => (
-              <Card key={car.id} xs={6} sm={6} md={4} lg={3} xl={3}>
-                <Card.Header>
-                  <Text>{car.dpt}</Text>
-                  <Text>{car.brand}</Text>
-                </Card.Header>
-                <Card.Body>
-                  <Card.Image
-                    src={car.photoUrl}
-                    objectFit="cover"
-                    width="100%"
-                    height={140}
-                    alt={car.model}
-                  />
-                </Card.Body>
-                <Card.Footer>
-                  <Text>{car.model}</Text>
-                  <Text>{car.km} Km</Text>
-                </Card.Footer>
+            {/* Carte permettant d’ajouter un nouveau véhicule au parc */}
+            <Grid2 xs={6} sm={6} md={4} lg={3} xl={3}>
+              <Card
+                sx={{ cursor: "pointer" }}
+                onClick={() => setEditMode("Empty")}
+              >
+                <CardMedia
+                  component="img"
+                  image="../public/AddSADCars.jpg"
+                  alt="Ajouter"
+                  sx={{ height: 140, objectFit: "cover" }}
+                />
               </Card>
-            ))}
-        </Grid.Container>
-      </Grid.Container>
+            </Grid2>
 
-      <Grid.Container justify="center">
-        <div className={styles.btn}>
-          <a href="#" onClick={() => setOption("ND")}>
-            RETOUR
-          </a>
-        </div>
-     </Grid.Container>
-    </Container>
-  ) : editMode === "Empty" ? (
-    <DptChoiceSAD
-      editMode={editMode}
-      setOption={setOption}
-      setEditMode={setEditMode}
-    ></DptChoiceSAD>
-  ) : (
+            {/* Liste des véhicules existants dans la BDD */}
+            {cars &&
+              cars.map((car) => (
+                <Grid2 xs={6} sm={6} md={4} lg={3} xl={3} key={car.id}>
+                  <Card>
+                    <CardContent sx={{ pb: 0 }}>
+                      <Typography>{car.dpt}</Typography>
+                      <Typography>{car.brand}</Typography>
+                    </CardContent>
+                    <CardMedia
+                      component="img"
+                      image={car.photoUrl}
+                      alt={car.model}
+                      sx={{ height: 140, objectFit: "cover" }}
+                    />
+                    <CardContent sx={{ pt: 1 }}>
+                      <Typography>{car.model}</Typography>
+                      <Typography>{car.km} Km</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid2>
+              ))}
+          </Grid2>
+
+          {/* Bouton RETOUR */}
+          <Grid2 container justifyContent="center" sx={{ mt: 2 }}>
+            <Button
+              variant="contained"
+              onClick={() => setOption("ND")}
+              className={styles.btn}
+            >
+              RETOUR
+            </Button>
+          </Grid2>
+        </Grid2>
+      </Container>
+    );
+  }
+
+  // === Affichage du "mode Empty" => Choix du Département SAD ===
+  if (editMode === "Empty") {
+    return (
+      <DptChoiceSAD
+        editMode={editMode}
+        setOption={setOption}
+        setEditMode={setEditMode}
+      />
+    );
+  }
+
+  // === Sinon, affichage d'une "CarCardSAD" en mode édition ===
+  return (
     <CarCardSAD
       editMode={editMode}
       setOption={setOption}
       setEditMode={setEditMode}
-    ></CarCardSAD>
+    />
   );
 }

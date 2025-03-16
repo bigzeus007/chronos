@@ -1,32 +1,37 @@
-'use client';
-import { useState, useEffect } from "react";
-import firebase from "firebase/app";
-import "firebase/firestore";
+"use client";
+import React, { useState, useEffect } from "react";
 import { db, storage } from "@/firebase";
 import { collection, getDocs } from "firebase/firestore";
-import { Badge, Card, Grid, Image, Row, Text } from "@nextui-org/react";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
-export default function CarCard({car, setEditMode}) {
-  
+// Composants MUI
+import {
+  Badge,
+  Card,
+  CardActionArea,
+  CardMedia,
+  CardContent,
+  Stack,
+  Typography,
+} from "@mui/material";
 
-  const availabilityColor = () => {
+export default function CarCard({ car, setEditMode }) {
+  // Détermine la couleur du badge selon l’état d’alerte
+  const getAvailabilityColor = () => {
     switch (car.waitingAlerte) {
       case false:
-        return {content:"Encours",color:"success"};
-
+        // "Encours"
+        return "success";
       case true:
-        return {content:"Waiting",color:"error"};
-
-
+        // "Waiting"
+        return "error";
       default:
         return "warning";
     }
   };
-  
 
+  // Charge l’image depuis Firebase Storage
   const [carImage, setCarImage] = useState("");
-
   const spaceRef = ref(storage, `parkingChronos/${car.id}`);
 
   useEffect(() => {
@@ -35,48 +40,61 @@ export default function CarCard({car, setEditMode}) {
       .catch((err) => console.log(err));
   }, [spaceRef]);
 
-  
   return (
-    
-    <Card isPressable onPress={()=>setEditMode(car)}>
-      { car.step==="Reception02"&&<Card.Header>
-      <Row wrap="wrap" justify="space-between" align="center">
-                <Text b>{car.csSelected}</Text>
-                <Text css={{ color: "$accents7", fontWeight: "$semibold", fontSize: "$sm" }}>
-                  RDV : {car.rdvTime}
-                </Text>
-              </Row>
-
-      </Card.Header>}
+    <Card
+      sx={{ cursor: "pointer" }}
+      onClick={() => setEditMode(car)}
       
-    <Badge 
-   
-    color={`${availabilityColor().color}`} content=""  variant="dot" css={{ p: "0" }}
-    horizontalOffset="45%"
-    verticalOffset="5%">
-    <Card.Image
-   
-      src={carImage}
-      
-      objectFit="cover"
-      width="100%"
-      
-      height={140}
-      alt={"loading.."}
-    />
+    >
+      {/* Entête conditionnelle : affichée uniquement si step === "Reception02" */}
+      {car.step === "Reception02" && (
+        <CardContent sx={{ pb: 0 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography fontWeight="bold">{car.csSelected}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              RDV : {car.rdvTime}
+            </Typography>
+          </Stack>
+        </CardContent>
+      )}
 
+      <Badge
+        overlap="circular"
+        variant="dot"
+        badgeContent="" // on reste sur un point
+        color={getAvailabilityColor()} // success, error, warning
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        sx={{
+          // Exemple si tu veux ajuster la position du badge :
+          // "& .MuiBadge-badge": { top: "5%", left: "45%" },
+        }}
+      >
+        <CardMedia
+          component="img"
+          image={carImage}
+          alt="loading.."
+          sx={{
+            height: 140,
+            objectFit: "cover",
+          }}
+        />
+      </Badge>
 
-    </Badge>
-    <Card.Footer css={{ justifyItems: "flex-start" }}>
-              <Row wrap="wrap" justify="space-between" align="center">
-                <Text color={car.rdv=="RDV"?"success":""} b>{car.rdv}</Text>
-                <Text css={{ color: "$accents7", fontWeight: "$semibold", fontSize: "$sm" }}>
-                  Arrivee : {car.arrivedAt}
-                </Text>
-              </Row>
-            </Card.Footer>
-
+      {/* Footer */}
+      <CardContent sx={{ pt: 1 }}>
+        <Stack direction="row" justifyContent="space-between" alignItems="center">
+          {/* Si car.rdv === "RDV", on affiche en vert */}
+          <Typography
+            fontWeight="bold"
+            color={car.rdv === "RDV" ? "success.main" : "inherit"}
+          >
+            {car.rdv}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" fontWeight="600">
+            Arrivée : {car.arrivedAt}
+          </Typography>
+        </Stack>
+      </CardContent>
     </Card>
-    
   );
 }

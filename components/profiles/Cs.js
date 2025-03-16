@@ -1,127 +1,94 @@
-
-import { useEffect } from "react";
-import { useState } from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import { auth, db } from "../../firebase";
 import styles from "../../styles/Button.module.css";
 import {
   collection,
-  getDocs,
-  getDoc,
-  doc,
   query,
   where,
-  onSnapshot,
   orderBy,
+  onSnapshot,
 } from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
-import Link from "next/link";
-import TakePicture from "../TakePicture";
-import BrandChoice from "../BrandChoice";
-import PisteurParc from "../PisteurParc";
-import CrdvNouveaux from "../CrdvNouveaux";
-import CrdvWaiting from "../CrdvWaiting";
-import CsWaiting from "../CsWaiting";
-import CsNouveaux from "../CsNouveaux";
+
+// Import MUI
+import { Button, Box } from "@mui/material";
+
+import CsNouveaux from "../CsNouveaux"; // Assurez-vous que CsNouveaux est migré vers MUI
+import CsWaiting from "../CsWaiting";   // Assurez-vous que CsWaiting est migré vers MUI
 
 export default function Cs({ userIn }) {
   const [option, setOption] = useState("ND");
-  function csBadgeColor(key) {
-    let csCovert = "";
-    switch (key) {
-      case "AZIZ":
-        csCovert = "purple";
-        break;
-      case "ABDEL":
-        csCovert = "green";
-        break;
-      case "BADR":
-        csCovert = "orange";
-        break;
-      case "SIMO":
-        csCovert = "blue";
-        break;
-      case "ND":
-        csCovert = "red";
-        break;
-
-      default:
-        csCovert = "gray";
-        break;
-    }
-    return csCovert;
-  }
-
-  const emptyPlace = {
-    csSelected: "ND",
-    rdv: "ND",
-    lavage: "ND",
-    note: "",
-    date: "",
-    imageUrl: "https://via.placeholder.com/320x180",
-  };
 
   const [cars, setCars] = useState([]);
   const [carsWaiting, setCarsWaiting] = useState([]);
 
   const parcListRef = collection(db, "parkingChronos");
+
+  // Récupération "Reception02" (réception en cours)
   useEffect(() => {
-    const queryCarsTimeless = query(
+    const q = query(
       parcListRef,
-      where("csSelected", "==", `${userIn.prenom}`),
+      where("csSelected", "==", userIn.prenom),
       where("step", "==", "Reception02"),
       orderBy("rdvTime", "asc")
     );
-    const unsubscribe = onSnapshot(queryCarsTimeless, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const carsData = [];
-
-      querySnapshot.forEach((doc) => {
-        carsData.push(doc.data());
-      });
+      snapshot.forEach((doc) => carsData.push(doc.data()));
       setCars(carsData);
     });
+    return unsubscribe;
+  }, [parcListRef, userIn.prenom]);
 
-    return unsubscribe; // cleanup function
-  }, []);
+  // Récupération "Reception03" (préstation en cours)
   useEffect(() => {
-    const queryCarsWaiting = query(
+    const q = query(
       parcListRef,
-      where("csSelected", "==", `${userIn.prenom}`),
+      where("csSelected", "==", userIn.prenom),
       where("step", "==", "Reception03")
     );
-    const unsubscribe = onSnapshot(queryCarsWaiting, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const carsDataWaiting = [];
-
-      querySnapshot.forEach((doc) => {
-        carsDataWaiting.push(doc.data());
-      });
+      snapshot.forEach((doc) => carsDataWaiting.push(doc.data()));
       setCarsWaiting(carsDataWaiting);
     });
+    return unsubscribe;
+  }, [parcListRef, userIn.prenom]);
 
-    return unsubscribe; // cleanup function
-  }, []);
-
-  return option === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("NOUVEAUX")}>
-          Réception
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("WAITING")}>
-          Préstation
-        </a>
-      </div>
-    </>
-  ) : option === "NOUVEAUX" ? (
-    <CsNouveaux setOption={setOption} cars={cars} userIn={userIn}></CsNouveaux>
-  ) : option === "WAITING" ? (
-    <CsWaiting
-      setOption={setOption}
-      carsWaiting={carsWaiting}
-      userIn={userIn}
-    ></CsWaiting>
-  ) : (
-    <div>error</div>
-  );
+  if (option === "ND") {
+    return (
+      <Box>
+        <Box className={styles.btn} mb={1}>
+          <Button variant="contained" onClick={() => setOption("NOUVEAUX")}>
+            Réception
+          </Button>
+        </Box>
+        <Box className={styles.btn}>
+          <Button variant="contained" onClick={() => setOption("WAITING")}>
+            Préstation
+          </Button>
+        </Box>
+      </Box>
+    );
+  } else if (option === "NOUVEAUX") {
+    // Liste de véhicules en "Reception02"
+    return (
+      <CsNouveaux
+        setOption={setOption}
+        cars={cars}
+        userIn={userIn}
+      />
+    );
+  } else if (option === "WAITING") {
+    // Liste de véhicules en "Reception03"
+    return (
+      <CsWaiting
+        setOption={setOption}
+        carsWaiting={carsWaiting}
+        userIn={userIn}
+      />
+    );
+  } else {
+    return <div>error</div>;
+  }
 }

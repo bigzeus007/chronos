@@ -1,218 +1,143 @@
-'use client';
-import React, { useEffect, useState } from "react";
-import styles from "../styles/Button.module.css";
-import { useRef } from "react";
+"use client";
+import React, { useEffect, useState, useRef } from "react";
 import { db, storage, auth } from "../firebase";
 import {
-  ref,
+  ref as storageRef,
   uploadString,
   getDownloadURL,
   deleteObject,
 } from "firebase/storage";
-
 import {
-  getDoc,
-  updateDoc,
   doc,
   addDoc,
-  onSnapshot,
   setDoc,
-  serverTimestamp,
-  collection,
-  deleteField,
   deleteDoc,
+  updateDoc,
+  deleteField,
+  collection,
 } from "firebase/firestore";
-import {
-  Button,
-  Image,
-  Text,
-  Card,
-  Container,
-  Grid,
-  Input,
-  Radio,
-  Loading,
-  Spacer,
-  Badge,
-  Avatar,
-} from "@nextui-org/react";
 
-export default function TakeRentCarPicture({ setOption}) {
+// Import MUI
+import {
+  Box,
+  Grid2,
+  Card,
+  CardContent,
+  CardActions,
+  Typography,
+  Button,
+} from "@mui/material";
+
+import styles from "../styles/Button.module.css";
+
+export default function TakeRentCarPicture({ setOption }) {
   const videoRef = useRef(null);
   const photoRef = useRef(null);
+
   const [hasPhoto, setHasPhoto] = useState(false);
-  const [laboZone, setLaboZone] = useState(true);
-  const [image, setImage] = useState(null);
   const [playingVideo, setPlayingVideo] = useState(false);
-  const [imageUrl, setImageUrl] = useState(null);
-
-  const [basy, setBasy] = useState(false);
-
-  const inputRef = useRef(null);
-  const [confirm, setConfirnm] = useState(0);
-
-  const [loading, setLoading] = useState(0);
+  const [image, setImage] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const userName = auth.currentUser ? auth.currentUser.displayName : "Unknown";
 
-  const submitMyCarPhoto = async (photo, photoId) => {
-    try {
-      const storageRef = ref(storage, `parkingChronos/${photoId}`);
+  const carsCollectionRef = collection(db, "parkingChronos");
+  const workingDate = new Date().toISOString().substring(0, 10);
 
-      // Upload the photo to the storage reference
-      await uploadString(storageRef, photo, "data_url");
-
-      // Get the download URL of the uploaded photo
-      const url = await getDownloadURL(storageRef);
-
-      // Update the Firestore document with the image URL
-      await setDoc(
-        doc(db, "parkingChronos", photoId),
-        { imageUrl: url },
-        { merge: true }
-      );
-
-      // Close the photo here or do something else
-      closePhoto();
-      setOption("ND");
-    } catch (error) {
-      console.log(error);
-      // handle the error here
-    }
-  };
-
+  // === Lancement de la caméra ===
   const getVideo = async () => {
-    const constraints = {
-      audio: false,
-      video: {
-        facingMode: "environment",
-      },
-    };
-
+    const constraints = { audio: false, video: { facingMode: "environment" } };
     if (videoRef.current && !videoRef.current.srcObject) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        const video = videoRef.current;
-
-        video.srcObject = stream;
-        video.addEventListener("loadedmetadata", () => {
-          video.play();
+        videoRef.current.srcObject = stream;
+        videoRef.current.addEventListener("loadedmetadata", () => {
+          videoRef.current.play();
           setPlayingVideo(true);
         });
       } catch (err) {
-        console.error(err);
+        console.error("Erreur caméra:", err);
       }
     }
   };
 
-  const emptyInput = () => {
-    let myInput = inputRef.current;
-    myInput.value = null;
-  };
-
-  // STOP CAMERA
-
-  const stopStreamedVideo = (video) => {
+  // Arrêter la caméra
+  const stopStreamedVideo = () => {
     if (videoRef.current && videoRef.current.srcObject) {
-      const stream = video.srcObject;
-      const tracks = stream.getTracks();
-      tracks.forEach((track) => {
-        track.stop();
-      });
+      const tracks = videoRef.current.srcObject.getTracks();
+      tracks.forEach((track) => track.stop());
       setPlayingVideo(false);
     }
   };
 
+  // === Prendre la photo ===
   const takePhoto = () => {
     if (photoRef.current && playingVideo) {
       const width = 250;
       const height = 480;
-      let photo = photoRef.current;
-      let video = videoRef.current;
-      photo.width = width;
-      photo.height = height;
+      const photoCanvas = photoRef.current;
+      const video = videoRef.current;
 
-      let ctx = photo.getContext("2d");
-      ctx.drawImage(video, 0, 0, photo.width, photo.height);
+      photoCanvas.width = width;
+      photoCanvas.height = height;
 
-      const imageCaptured = photo.toDataURL("image/jpeg", 0.2);
+      const ctx = photoCanvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, width, height);
 
+      const imageCaptured = photoCanvas.toDataURL("image/jpeg", 0.2);
       setImage(imageCaptured);
-
-      emptyInput;
       setHasPhoto(true);
-      stopStreamedVideo(video);
+
+      // On arrête la caméra après la capture
+      stopStreamedVideo();
     }
   };
 
+  // Réinitialiser la photo
   const closePhoto = () => {
-    let photo = photoRef.current;
-
-    let ctx = photo.getContext("2d");
-    ctx.clearRect(0, 0, photo.width, photo.height);
+    const ctx = photoRef.current.getContext("2d");
+    ctx.clearRect(0, 0, photoRef.current.width, photoRef.current.height);
 
     setHasPhoto(false);
-
-    setLoading(0);
+    setLoading(false);
   };
-  useEffect(() => {
-    if (laboZone) {
-      getVideo();
-    }
-  }, [videoRef, laboZone]);
 
-  const [carStatus, setCarStatus] = useState("none");
-  const takePictureSwitch = hasPhoto ? "flex" : "none";
-
-  const carsCollectionRef = collection(db, "parkingChronos");
-
-  const freePlace = async (car) => {
+  // === Upload photo et mise à jour Firestore ===
+  const submitMyCarPhoto = async (base64Photo, docId) => {
     try {
-      const carRef = doc(db, "parkingChronos", `${car.id}`);
-      // Create a reference to the file to delete
-      const imageCarRef = ref(storage, `parkingChronos/${car.id}`);
+      // On stocke l'image dans Firebase Storage
+      const sRef = storageRef(storage, `parkingChronos/${docId}`);
+      await uploadString(sRef, base64Photo, "data_url");
+      const url = await getDownloadURL(sRef);
 
-      await updateDoc(carRef, {
-        createdAt: deleteField(),
-        place: deleteField(),
-        basy: deleteField(),
-        csSelected: deleteField(),
-        note: deleteField(),
-        placeStatus: deleteField(),
-        lavage: deleteField(),
-        carStory: deleteField(),
-        imageUrl: deleteField(),
-        id: deleteField(),
-      });
-      await deleteDoc(carRef);
+      // On met à jour la doc Firestore avec l'URL
+      await setDoc(
+        doc(db, "parkingChronos", docId),
+        { imageUrl: url },
+        { merge: true }
+      );
 
-      // Delete the file
-      await deleteObject(imageCarRef);
-      console.log("File deleted successfully");
-
-      setLaboZone(false);
-
-      setLoading(0);
+      // On referme la preview et on revient en arrière
+      closePhoto();
+      setOption("ND");
     } catch (error) {
-      console.log(error);
+      console.error("Erreur d'upload:", error);
     }
   };
 
-  const workingDate = new Date().toISOString().substring(0, 10);
-
-  const handleSubmit = async (image, rdv, brand, csSelected) => {
+  // === Création du doc Firestore + upload de la photo ===
+  const handleSubmit = async () => {
+    setLoading(true);
     try {
+      // On crée un doc en Firestore
       const docRef = await addDoc(carsCollectionRef, {
-        // createdAt: serverTimestamp(),
-
         arrivedAt: new Date().toISOString().substring(11, 16),
-        brand: brand,
+        brand: "RentCar", // ou tout autre champ si nécessaire
         date: workingDate,
         step: "Reception01",
-        rdv: rdv,
+        rdv: "Rent", // exemple
         waitingAlerte: true,
-        csSelected: csSelected,
-
+        csSelected: "ND",
         carStory: [
           {
             qui: userName,
@@ -223,103 +148,111 @@ export default function TakeRentCarPicture({ setOption}) {
         ],
       });
 
+      // Ensuite on uploade la photo
       await submitMyCarPhoto(image, docRef.id);
 
+      // Enfin on met à jour le doc avec son propre ID
       await setDoc(
         doc(db, "parkingChronos", docRef.id),
-        {
-          id: docRef.id,
-        },
-        {
-          merge: true,
-        }
+        { id: docRef.id },
+        { merge: true }
       );
     } catch (error) {
-      console.log(error);
+      console.error("Erreur Firestore:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Au montage, on lance la caméra
+  useEffect(() => {
+    getVideo();
+    return () => stopStreamedVideo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <Grid.Container justify="center">
+    <Grid2 container justifyContent="center" sx={{ p: 2 }}>
+      {/* Carte de prévisualisation si photo capturée */}
       <Card
-        css={{
-          display: `${hasPhoto ? "flex" : "none"}`,
+        variant="outlined"
+        sx={{
+          display: hasPhoto ? "flex" : "none",
           width: "80vw",
-          maxWidth: "600px",
+          maxWidth: 600,
           backgroundColor: "transparent",
+          flexDirection: "column",
+          alignItems: "center",
+          p: 2,
         }}
       >
-        <Card.Body>
-          <Grid.Container justify="center">
-            <Grid justify="center">
+        <CardContent>
+          <Grid2 container justifyContent="center">
+            <Grid2>
               <canvas
+                ref={photoRef}
                 style={{
-                  display: `${takePictureSwitch}`,
-                  // margin: "auto",
+                  display: hasPhoto ? "block" : "none",
                   width: "30vw",
                   height: "30vh",
                   minWidth: "190px",
                 }}
-                ref={photoRef}
               />
-            </Grid>
-          </Grid.Container>
-        </Card.Body>
-        <Card.Footer>
-          <Grid.Container gap={1} justify="space-evenly">
-            
-              <div className={styles.btn}>
-                <a
-                  href="#"
-                  onClick={() => {
-                    closePhoto();
-                    setOption("ND");
-                  }}
-                >
-                  Annuler
-                </a>
-              </div>
-              <div className={styles.btn}>
-                <a
-                  href="#"
-                  onClick={() => handleSubmit(image, rdv, brand, csSelected)}
-                >
-                  Enregistrer
-                </a>
-              </div>
-           
-          </Grid.Container>
-        </Card.Footer>
+            </Grid2>
+          </Grid2>
+        </CardContent>
+
+        <CardActions sx={{ justifyContent: "space-evenly", width: "100%" }}>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              closePhoto();
+              setOption("ND");
+            }}
+            disabled={loading}
+          >
+            Annuler
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={loading}
+            sx={{ ml: 2 }}
+          >
+            {loading ? "Enregistrement..." : "Enregistrer"}
+          </Button>
+        </CardActions>
       </Card>
 
-      <div
+      {/* Zone d'affichage de la caméra si on n'a pas encore pris la photo */}
+      <Box
         id="laboZone"
-        style={{
-          display: "flex",
-          borderRadius: "20%",
-          display: `${hasPhoto ? "none" : "flex"}`,
+        sx={{
+          display: hasPhoto ? "none" : "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          cursor: "pointer",
         }}
+        onClick={takePhoto}
       >
-        <div
-          onClick={() => takePhoto()}
+        <video
+          ref={videoRef}
           style={{
-            position: "relative",
-            padding: "10% 10% 20% 15%",
-            height: "70vw",
+            borderRadius: "20px",
             width: "70vw",
+            maxWidth: "400px",
+            height: "auto",
+            objectFit: "cover",
           }}
+        />
+        <Typography
+          variant="body2"
+          color="white"
+          sx={{ mt: 1, textAlign: "center" }}
         >
-          <video
-            ref={videoRef}
-            style={{
-              borderRadius: "20%",
-              width: "100%",
-              height: "100%",
-              objectFit: "fill",
-            }}
-          />
-        </div>
-      </div>
-    </Grid.Container>
+          Touchez l’écran pour prendre la photo
+        </Typography>
+      </Box>
+    </Grid2>
   );
 }

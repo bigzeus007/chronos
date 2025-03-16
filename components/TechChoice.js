@@ -1,163 +1,187 @@
-'use client';
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from "../firebase";
-import styles from ".././styles/Button.module.css";
+"use client";
+import React, { useEffect, useState } from "react";
+import { db } from "../firebase";
 import {
   collection,
-  getDocs,
-  getDoc,
-  doc,
   query,
   where,
   orderBy,
   onSnapshot,
   updateDoc,
+  doc,
 } from "firebase/firestore";
+
+// Import MUI
 import {
-  Button,
-  Grid,
-  Loading,
-  Input,
-  Card,
   Container,
-  Row,
-  Col,
-} from "@nextui-org/react";
+  Grid2,
+  Button,
+  TextField,
+  Box,
+  Typography,
+} from "@mui/material";
 
-import RdvChoice from "./RdvChoice";
+import styles from "../styles/Button.module.css";
 
-export default function TechChoice({ setOption, atelier,setAtelier,editMode , userIn, setEditMode, }) {
+export default function TechChoice({
+  setOption,
+  atelier,
+  setAtelier,
+  editMode,
+  userIn,
+  setEditMode,
+}) {
   const [tech, setTech] = useState("ND");
   const [repairTime, setRepairTime] = useState(0);
-
   const [techList, setTechlist] = useState([]);
 
+  // Référence Firestore pour la liste des techniciens
   const techListRef = collection(db, "staffList");
+
+  // Chargement de la liste des techniciens
   useEffect(() => {
-    const queryTechList = query(
+    const q = query(
       techListRef,
       where("job", "==", "Tech"),
-      where("service", "==", `${atelier}`),
+      where("service", "==", atelier),
       orderBy("nom", "asc")
     );
-    const unsubscribe = onSnapshot(queryTechList, (querySnapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
       const techData = [];
-
-      querySnapshot.forEach((doc) => {
-        techData.push(doc.data());
-      });
+      snapshot.forEach((doc) => techData.push(doc.data()));
       setTechlist(techData);
     });
+    return unsubscribe; // cleanup
+  }, [atelier, techListRef]);
 
-    return unsubscribe; // cleanup function
-  }, []);
+  // Référence du véhicule à modifier
+  const carRef = doc(db, "parkingChronos", `${editMode.id}`);
 
+  // On récupère l'ancienne durée de réparation du tech concerné (si elle existe déjà)
+  const lastRepairTime = editMode[tech]?.repairTime
+    ? Number(editMode[tech].repairTime)
+    : 0;
+  // Somme de l'ancienne durée + la nouvelle
+  const updatedRepairTime = repairTime + lastRepairTime;
 
-  /*HANDLE SUBMIT WORKING ON */
+  // Historique des techniciens ayant déjà travaillé sur ce véhicule
+  const techTeams = editMode.techTeamsUpdated ? editMode.techTeamsUpdated : [];
 
-  const carRef = doc(db, "parkingChronos",`${editMode.id}`);
-  const lastRepairTime = editMode[`${tech}`]? Number(editMode[`${tech}`].repairTime):0;
-  const updatedRepairTime = repairTime+lastRepairTime;
-  const techTeams = editMode.techTeamsUpdated? editMode.techTeamsUpdated:[];
-  
-  
-  const handleSubmit= async (element) => {
+  // Gestion de la mise à jour Firestore
+  const handleSubmit = async (mode) => {
     try {
-      const docRef = await updateDoc(carRef, {
-        techTeamsUpdated:[...techTeams,tech],
-        [tech]:
-        {
-        repairTime:updatedRepairTime,
-        workingTime:0,
-       
-          workStatus:"Pending",
-          
-
+      await updateDoc(carRef, {
+        techTeamsUpdated: [...techTeams, tech],
+        [tech]: {
+          repairTime: updatedRepairTime,
+          workingTime: 0,
+          workStatus: "Pending",
         },
-        step:`${element=="Ajouter"?"Prestation01":"Prestation02"}`,
-
-        
+        step: mode === "Ajouter" ? "Prestation01" : "Prestation02",
       });
       setEditMode("ND");
-      
-
-      
-
-      
     } catch (error) {
       console.log(error);
     }
   };
 
-  return tech === "ND" ? (
-    <>
-      {techList.map((technician) => (
-        <div className={styles.btn} key={technician.nom}>
-          <a href="#" onClick={() => setTech(technician.nom)}>
-            {technician.nom}
-          </a>
-        </div>
-      ))}
-    </>
-  ) : (
-    <>
-      <Container justify="center">
-        <Row justify="center">
-          <div className={styles.btn}>
-            <a
-              href="#"
-              onClick={() => {
-                setTech("ND");
-                setRepairTime(0);
-              }}
+  // === AFFICHAGE ===
+
+  // 1) Choix du technicien si tech === "ND"
+  if (tech === "ND") {
+    return (
+      <Box>
+        {techList.map((technician) => (
+          <Box key={technician.nom} className={styles.btn} mb={1}>
+            <Button
+              variant="contained"
+              onClick={() => setTech(technician.nom)}
+              fullWidth
             >
-              {tech}
-            </a>
-          </div>
-        </Row>
-        <Container>
-          <Row>
-            <Col>
-              <div className={styles.btn}>
-                <a href="#" onClick={() => setRepairTime(repairTime + 15)}>
-                  +15
-                </a>
-              </div>
-            </Col>
-            <Col>
-              <div className={styles.btn}>
-                <a href="#" onClick={() => setRepairTime(repairTime + 75)}>
-                  +75
-                </a>
-              </div>
-            </Col>
-          </Row>
-        </Container>
-        <Container justify="center">
-          <Row gap={1} justify="center">
-            <Input
-              label="Durée en unités"
-              color="warning"
-              value={repairTime}
-              type="number"
-              onChange={(e) => setRepairTime(Number(e.target.value))}
-            />
-          </Row>
-          {repairTime!==0&&<Row gap={1} justify="center">
-            <div className={styles.btn}>
-              <a href="#" onClick={() => handleSubmit("Confirmer")}>
-                Confirmer
-              </a>
-            </div>
-            <div className={styles.btn}>
-              <a href="#" onClick={() => handleSubmit("Ajouter")}>
-                Ajouter
-              </a>
-            </div>
-          </Row>}
-        </Container>
-      </Container>
-    </>
+              {technician.nom}
+            </Button>
+          </Box>
+        ))}
+      </Box>
+    );
+  }
+
+  // 2) Sinon, on a choisi un tech => on affiche les contrôles pour la durée
+  return (
+    <Container sx={{ textAlign: "center" }}>
+      {/* Affichage du nom du technicien choisi */}
+      <Box className={styles.btn} mb={2}>
+        <Button
+          variant="outlined"
+          onClick={() => {
+            setTech("ND");
+            setRepairTime(0);
+          }}
+        >
+          {tech}
+        </Button>
+      </Box>
+
+      {/* Boutons +15 et +75 */}
+      <Grid2 container spacing={2} justifyContent="center" mb={2}>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setRepairTime(repairTime + 15)}
+            className={styles.btn}
+          >
+            +15
+          </Button>
+        </Grid2>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setRepairTime(repairTime + 75)}
+            className={styles.btn}
+          >
+            +75
+          </Button>
+        </Grid2>
+      </Grid2>
+
+      {/* Zone de saisie de la durée libre */}
+      <Grid2 container justifyContent="center" mb={2}>
+        <Grid2 xs={6} sm={4} md={3}>
+          <TextField
+            label="Durée en unités"
+            type="number"
+            variant="outlined"
+            color="warning"
+            fullWidth
+            value={repairTime}
+            onChange={(e) => setRepairTime(Number(e.target.value))}
+          />
+        </Grid2>
+      </Grid2>
+
+      {/* Boutons Confirmer / Ajouter si repairTime !== 0 */}
+      {repairTime !== 0 && (
+        <Grid2 container spacing={2} justifyContent="center">
+          <Grid2>
+            <Button
+              variant="contained"
+              onClick={() => handleSubmit("Confirmer")}
+              className={styles.btn}
+            >
+              Confirmer
+            </Button>
+          </Grid2>
+          <Grid2>
+            <Button
+              variant="contained"
+              onClick={() => handleSubmit("Ajouter")}
+              className={styles.btn}
+            >
+              Ajouter
+            </Button>
+          </Grid2>
+        </Grid2>
+      )}
+    </Container>
   );
 }

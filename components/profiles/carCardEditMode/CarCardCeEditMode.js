@@ -1,26 +1,23 @@
-'use client';
-import { useState, useEffect } from "react";
-import firebase from "firebase/app";
+"use client";
+import React, { useState } from "react";
 import styles from "../../../styles/Button.module.css";
-import "firebase/firestore";
-import { db, storage } from "@/firebase";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+
+// Import MUI
 import {
+  Box,
+  Grid2,
+  Card,
+  CardMedia,
+  CardContent,
+  CardActions,
+  Typography,
   Badge,
   Button,
-  Card,
-  Checkbox,
-  Container,
-  Grid,
-  Image,
-  Input,
-  Radio,
-  Row,
-  Spacer,
-  Text,
-} from "@nextui-org/react";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import AteliersChoice from "@/components/AteliersChoice";
+} from "@mui/material";
+
+import AteliersChoice from "@/components/AteliersChoice"; // Assurez-vous que AteliersChoice est lui aussi migré en MUI
 
 export default function CarCardCeEditMode({
   editMode,
@@ -32,44 +29,24 @@ export default function CarCardCeEditMode({
   const userName = userIn.userName;
 
   const [atelier, setAtelier] = useState("ND");
-
- 
-  const [rdvTime, setRdvTime] = useState("");
   const [affectationStep, setAffectationStep] = useState(0);
-  const [requestSelected, setRequestSelected] = useState([]);
-  const [requestConfirmed, setRequestConfirmed] = useState(false);
 
   const workingDate = new Date().toISOString().substring(0, 10);
-  const carsCollectionRef = collection(db, "parkingChronos");
   const carId = car.id;
-  const [dataRequestArray, setDataRequestArray] = useState([]);
 
-  const dataRequestConvert = (array) => {
-    let dataRequestArrayInit = [];
-    for (let index = 0; index < array.length; index++) {
-      const element = array[index];
-      switch (element) {
-        case "exp":
-          dataRequestArrayInit.push({ exp: true });
-          break;
-        case "mec":
-          dataRequestArrayInit.push({ mec: true });
-          break;
-        case "dia":
-          dataRequestArrayInit.push({ dia: true });
-          break;
-        case "dev":
-          dataRequestArrayInit.push({ dev: true });
-          break;
-
-        default:
-          break;
-      }
+  // Récupère la couleur du badge selon l’état waitingAlerte
+  const availabilityColor = () => {
+    switch (car.waitingAlerte) {
+      case false:
+        return { content: "Encours", color: "success" };
+      case true:
+        return { content: "Waiting", color: "error" };
+      default:
+        return { content: "", color: "warning" };
     }
-    setDataRequestArray(dataRequestArrayInit);
-    return dataRequestArrayInit;
   };
 
+  // Exemple de fonction de soumission Firestore
   const handleSubmit = async (carId, requestSelected, rdvTime) => {
     try {
       await setDoc(
@@ -78,10 +55,9 @@ export default function CarCardCeEditMode({
           step: "Prestation01",
           restitutionTime: rdvTime,
           waitingAlerte: true,
-
           requestSelected: requestSelected,
           // carStory: [
-          //     ...car.carStory,
+          //   ...car.carStory,
           //   {
           //     qui: userName,
           //     quoi: "traitement crdv",
@@ -90,9 +66,7 @@ export default function CarCardCeEditMode({
           //   },
           // ],
         },
-        {
-          merge: true,
-        }
+        { merge: true }
       );
       setOption("ND");
     } catch (error) {
@@ -100,71 +74,80 @@ export default function CarCardCeEditMode({
     }
   };
 
-  const availabilityColor = () => {
-    switch (car.waitingAlerte) {
-      case false:
-        return { content: "Encours", color: "success" };
-
-      case true:
-        return { content: "Waiting", color: "error" };
-
-      default:
-        return "warning";
-    }
-  };
-
   return (
-    <Grid.Container justify="center">
-      <Grid.Container justify="center">
-        <Card css={{ width: "200px" }}>
-          <Badge
-            color={`${availabilityColor().color}`}
-            content=""
-            variant="dot"
-            css={{ p: "0" }}
-            horizontalOffset="45%"
-            verticalOffset="5%"
-          >
-            <Card.Image
-              src={car.imageUrl}
-              objectFit="cover"
-              width={200}
-              height={140}
-              alt={"loading.."}
-            />
-          </Badge>
-          <Card.Footer css={{ justifyItems: "flex-start" }}>
-            <Row wrap="wrap" justify="space-between" align="center">
-              <Text b>{car.rdv}</Text>
-              <Text
-                css={{
-                  color: "$accents7",
-                  fontWeight: "$semibold",
-                  fontSize: "$sm",
+    <Grid2 container justifyContent="center" sx={{ p: 2 }}>
+      {/* Carte d’affichage du véhicule */}
+      <Grid2 xs={12} md={6} sx={{ mb: 2 }}>
+        <Card sx={{ width: 200, mx: "auto" }}>
+          <Box sx={{ position: "relative" }}>
+            <Badge
+              color={availabilityColor().color}
+              variant="dot"
+              overlap="circular"
+              sx={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+              }}
+            >
+              <CardMedia
+                component="img"
+                image={car.imageUrl}
+                alt="loading.."
+                sx={{
+                  width: 200,
+                  height: 140,
+                  objectFit: "cover",
                 }}
-              >
-                Livraison : {car.restitutionTime}
-              </Text>
-            </Row>
-          </Card.Footer>
+              />
+            </Badge>
+          </Box>
+
+          <CardContent sx={{ pb: 1 }}>
+            <Grid2 container justifyContent="space-between" alignItems="center">
+              <Grid2>
+                <Typography variant="body2" fontWeight="bold">
+                  {car.rdv}
+                </Typography>
+              </Grid2>
+              <Grid2>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight="600"
+                >
+                  Livraison : {car.restitutionTime}
+                </Typography>
+              </Grid2>
+            </Grid2>
+          </CardContent>
         </Card>
-      </Grid.Container>
+      </Grid2>
 
-      <Spacer y={1}></Spacer>
-      <Grid.Container>
-      {affectationStep==0 && <AteliersChoice atelier={atelier} setAtelier={setAtelier} editMode={editMode} setOption={setOption} userIn={userIn} setEditMode={setEditMode}></AteliersChoice>}
-       
+      {/* Choix d’atelier si affectationStep = 0 */}
+      <Grid2 xs={12}>
+        {affectationStep === 0 && (
+          <AteliersChoice
+            atelier={atelier}
+            setAtelier={setAtelier}
+            editMode={editMode}
+            setOption={setOption}
+            userIn={userIn}
+            setEditMode={setEditMode}
+          />
+        )}
+      </Grid2>
 
-        
-      </Grid.Container>
-
-    
-        <div className={styles.btn}>
-          <a href="#" onClick={() => setEditMode("ND")}>
-            Annuler
-          </a>
-        </div>
-      
-    </Grid.Container>
+      {/* Bouton Annuler */}
+      <Grid2 xs={12} sx={{ mt: 2 }}>
+        <Button
+          variant="contained"
+          onClick={() => setEditMode("ND")}
+          className={styles.btn}
+        >
+          Annuler
+        </Button>
+      </Grid2>
+    </Grid2>
   );
 }

@@ -1,88 +1,94 @@
-'use client';
-import { useState, useEffect } from "react";
-import firebase from "firebase/app";
+"use client";
+import React, { useState } from "react";
 import styles from "../../../styles/Button.module.css";
-import "firebase/firestore";
-import { db, storage } from "@/firebase";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { collection, doc, setDoc } from "firebase/firestore";
+
+// Import MUI
 import {
+  Box,
+  Grid2,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
   Badge,
   Button,
-  Card,
-  Checkbox,
-  Container,
-  Grid,
-  Image,
-  Input,
   Radio,
-  Row,
-  Spacer,
-  Text,
-} from "@nextui-org/react";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
+  RadioGroup,
+  FormControlLabel,
+  Checkbox,
+  FormControl,
+  FormLabel,
+  FormGroup,
+  TextField,
+} from "@mui/material";
 
-export default function CarCardCrvEditMode({ editMode, setOption, userIn, setEditMode }) {
+/**
+ *
+ * CarCardCrvEditMode
+ *
+ * - Permet d'éditer un véhicule en mode "Conseiller de Service" (CRDV).
+ * - On y choisit le conseiller (csSelected),
+ *   les travaux (requestSelected), et l’heure de RDV (rdvTime).
+ * - On met ensuite à jour le doc dans Firestore (step: "Reception02").
+ *
+ */
+export default function CarCardCrvEditMode({
+  editMode,
+  setOption,
+  userIn,
+  setEditMode,
+}) {
   const car = editMode;
   const userName = userIn.userName;
+
   const [csSelected, setCsSelected] = useState(car.csSelected);
   const [rdvTime, setRdvTime] = useState("");
   const [requestSelected, setRequestSelected] = useState([]);
   const [requestConfirmed, setRequestConfirmed] = useState(false);
 
   const workingDate = new Date().toISOString().substring(0, 10);
-  const carsCollectionRef = collection(db, "parkingChronos");
   const carId = car.id;
-  const [dataRequestArray, setDataRequestArray]=useState([]);
+
+  // On va stocker un équivalent "dataRequestArray"
+  // qui convertit les valeurs "exp", "mec", "dia", "dev"
+  // en un tableau d'objets, si besoin
+  const [dataRequestArray, setDataRequestArray] = useState([]);
 
   const dataRequestConvert = (array) => {
-    let dataRequestArrayInit = [];
-    for (let index = 0; index < array.length; index++) {
-      const element = array[index];
-      switch (element) {
+    const dataRequestArrayInit = array.map((item) => {
+      switch (item) {
         case "exp":
-        dataRequestArrayInit.push({ exp: true });
-          break;
+          return { exp: true };
         case "mec":
-            dataRequestArrayInit.push({ mec: true });
-          break;
-          case "dia":
-            dataRequestArrayInit.push({ dia: true });
-          break;
+          return { mec: true };
+        case "dia":
+          return { dia: true };
         case "dev":
-            dataRequestArrayInit.push({ dev: true });
-          break;
-
+          return { dev: true };
         default:
-          break;
+          return {};
       }
-    }
-    setDataRequestArray(dataRequestArrayInit)
+    });
+    setDataRequestArray(dataRequestArrayInit);
     return dataRequestArrayInit;
   };
 
-  const handleSubmit = async (carId, csSelected, requestSelected, rdvTime) => {
+  // Met à jour le doc Firestore
+  const handleSubmit = async (carId, cs, requestArr, time) => {
     try {
       await setDoc(
         doc(db, "parkingChronos", carId),
         {
           step: "Reception02",
-          rdvTime: rdvTime,
+          rdvTime: time,
           waitingAlerte: false,
-          csSelected: csSelected,
-          requestSelected: requestSelected,
-          // carStory: [
-          //     ...car.carStory,
-          //   {
-          //     qui: userName,
-          //     quoi: "traitement crdv",
-          //     date: workingDate,
-          //     time: new Date().toISOString().substring(11, 16),
-          //   },
-          // ],
+          csSelected: cs,
+          requestSelected: requestArr,
+          // carStory, etc. si besoin
         },
-        {
-          merge: true,
-        }
+        { merge: true }
       );
       setOption("ND");
     } catch (error) {
@@ -90,173 +96,242 @@ export default function CarCardCrvEditMode({ editMode, setOption, userIn, setEdi
     }
   };
 
+  // Détermine la couleur du badge selon waitingAlerte
   const availabilityColor = () => {
     switch (car.waitingAlerte) {
       case false:
         return { content: "Encours", color: "success" };
-
       case true:
         return { content: "Waiting", color: "error" };
-
       default:
-        return "warning";
+        return { content: "", color: "warning" };
     }
   };
 
   return (
-    <Grid.Container justify="center">
-      <Grid.Container justify="center">
-        <Card css={{ width: "200px" }}>
-          <Badge
-            color={`${availabilityColor().color}`}
-            content=""
-            variant="dot"
-            css={{ p: "0" }}
-            horizontalOffset="45%"
-            verticalOffset="5%"
-          >
-            <Card.Image
-              src={car.imageUrl}
-              objectFit="cover"
-              width={200}
-              height={140}
-              alt={"loading.."}
-            />
-          </Badge>
-          <Card.Footer css={{ justifyItems: "flex-start" }}>
-            <Row wrap="wrap" justify="space-between" align="center">
-              <Text b>{car.rdv}</Text>
-              <Text
-                css={{
-                  color: "$accents7",
-                  fontWeight: "$semibold",
-                  fontSize: "$sm",
-                }}
-              >
-                Arrivee : {car.arrivedAt}
-              </Text>
-            </Row>
-          </Card.Footer>
+    <Grid2 container justifyContent="center" sx={{ p: 2 }}>
+      {/* Carte principale affichant l'image et quelques infos */}
+      <Grid2 xs={12} md={6}>
+        <Card sx={{ width: 200, mx: "auto" }}>
+          {/* Positionnement du Badge par-dessus l'image */}
+          <Box sx={{ position: "relative" }}>
+            <Badge
+              variant="dot"
+              color={availabilityColor().color}
+              overlap="circular"
+              sx={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+              }}
+            >
+              <CardMedia
+                component="img"
+                image={car.imageUrl}
+                alt="loading.."
+                sx={{ width: 200, height: 140, objectFit: "cover" }}
+              />
+            </Badge>
+          </Box>
+
+          <CardContent sx={{ pb: 1 }}>
+            <Grid2 container justifyContent="space-between" alignItems="center">
+              <Grid2>
+                <Typography fontWeight="bold">{car.rdv}</Typography>
+              </Grid2>
+              <Grid2>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight="600"
+                >
+                  Arrivee : {car.arrivedAt}
+                </Typography>
+              </Grid2>
+            </Grid2>
+          </CardContent>
         </Card>
-      </Grid.Container>
-      <Grid.Container justify="center">
+      </Grid2>
+
+      {/* Bloc : Sélection du conseiller (csSelected) */}
+      <Grid2 xs={12} sx={{ mt: 2, textAlign: "center" }}>
         <Button
-          auto
-          css={{ width: "200px" }}
-          onPress={() => setCsSelected("ND")}
+          variant="outlined"
+          sx={{ width: 200 }}
+          onClick={() => setCsSelected(csSelected === "ND" ? "ND" : "ND")}
         >
           {csSelected !== "ND" ? csSelected : "Choisir"}
         </Button>
+
+        {/* On affiche la liste de radio si csSelected === "ND" */}
         {csSelected === "ND" && (
-          <Grid.Container justify="center">
-            <Radio.Group
-              labelColor="warning"
-              css={{ fontSize: "22px" }}
-              label="Conseillers de service"
-              onChange={(e) => setCsSelected(e)}
-              defaultValue={`${csSelected}`}
-            >
-              <Radio value="AZIZ" css={{ size: "10px" }} isSquared>
-                AZIZ
-              </Radio>
-              <Radio value="ABDEL" css={{ size: "10px" }} isSquared>
-                ABDEL
-              </Radio>
-              <Radio value="BADR" css={{ size: "10px" }} isSquared>
-                BADR
-              </Radio>
-              <Radio value="SIMO" css={{ size: "10px" }} isSquared>
-                SIMO
-              </Radio>
-            </Radio.Group>
-          </Grid.Container>
+          <Box sx={{ mt: 2 }}>
+            <FormControl>
+              <FormLabel>Conseillers de service</FormLabel>
+              <RadioGroup
+                value={csSelected}
+                onChange={(e) => setCsSelected(e.target.value)}
+              >
+                <FormControlLabel
+                  value="AZIZ"
+                  control={<Radio />}
+                  label="AZIZ"
+                />
+                <FormControlLabel
+                  value="ABDEL"
+                  control={<Radio />}
+                  label="ABDEL"
+                />
+                <FormControlLabel
+                  value="BADR"
+                  control={<Radio />}
+                  label="BADR"
+                />
+                <FormControlLabel
+                  value="SIMO"
+                  control={<Radio />}
+                  label="SIMO"
+                />
+              </RadioGroup>
+            </FormControl>
+          </Box>
         )}
-      </Grid.Container>
-      <Spacer y={1}></Spacer>
-      <Grid.Container justify="center">
-        {requestConfirmed && (
+      </Grid2>
+
+      {/* Sélection des travaux */}
+      <Grid2 xs={12} sx={{ mt: 2, textAlign: "center" }}>
+        {requestConfirmed ? (
           <Button
-            auto
-            css={{ width: "200px" }}
-            onPress={() => setRequestConfirmed(false)}
+            variant="outlined"
+            sx={{ width: 200 }}
+            onClick={() => setRequestConfirmed(false)}
           >
-            <Text>Travaux: {requestSelected.join(", ")}</Text>
+            Travaux : {requestSelected.join(", ")}
           </Button>
-        )}
-
-        {!requestConfirmed && (
-          <Grid.Container justify="center">
-            <Grid.Container justify="center">
-              <Text color="primary"> Choisir travaux :</Text>
-            </Grid.Container>
-            <Checkbox.Group
-              color="primary"
-              labelColor="warning"
-              aria-labelledby="Choisir travaux :"
-              css={{ justifyContent: "center" }}
-              value={requestSelected}
-              onChange={setRequestSelected}
+        ) : (
+          <Box>
+            <Typography color="primary">Choisir travaux :</Typography>
+            <FormGroup row sx={{ justifyContent: "center", mt: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={requestSelected.includes("exp")}
+                    onChange={(e) => {
+                      const val = "exp";
+                      if (e.target.checked) {
+                        setRequestSelected((prev) => [...prev, val]);
+                      } else {
+                        setRequestSelected((prev) =>
+                          prev.filter((x) => x !== val)
+                        );
+                      }
+                    }}
+                  />
+                }
+                label="Express"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={requestSelected.includes("mec")}
+                    onChange={(e) => {
+                      const val = "mec";
+                      if (e.target.checked) {
+                        setRequestSelected((prev) => [...prev, val]);
+                      } else {
+                        setRequestSelected((prev) =>
+                          prev.filter((x) => x !== val)
+                        );
+                      }
+                    }}
+                  />
+                }
+                label="Mécanique"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={requestSelected.includes("dia")}
+                    onChange={(e) => {
+                      const val = "dia";
+                      if (e.target.checked) {
+                        setRequestSelected((prev) => [...prev, val]);
+                      } else {
+                        setRequestSelected((prev) =>
+                          prev.filter((x) => x !== val)
+                        );
+                      }
+                    }}
+                  />
+                }
+                label="Diag"
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={requestSelected.includes("dev")}
+                    onChange={(e) => {
+                      const val = "dev";
+                      if (e.target.checked) {
+                        setRequestSelected((prev) => [...prev, val]);
+                      } else {
+                        setRequestSelected((prev) =>
+                          prev.filter((x) => x !== val)
+                        );
+                      }
+                    }}
+                  />
+                }
+                label="Devis"
+              />
+            </FormGroup>
+            <Button
+              variant="contained"
+              onClick={() => {
+                setRequestConfirmed(true);
+                dataRequestConvert(requestSelected);
+              }}
+              sx={{ mt: 2 }}
             >
-              <Grid.Container wrap="wrap">
-                <Grid justify="center" xs={12} lg={4} sm={6}>
-                  <Checkbox value="exp">Express</Checkbox>
-                </Grid>
-                <Grid justify="center" xs={12} lg={4} sm={6}>
-                  <Checkbox value="mec">Mécanique</Checkbox>
-                </Grid>
-                <Grid justify="center" xs={12} lg={4} sm={6}>
-                  <Checkbox value="dia">Diag</Checkbox>
-                </Grid>
-                <Grid justify="center" xs={12} lg={4} sm={6}>
-                  <Checkbox value="dev">Devis</Checkbox>
-                </Grid>
-              </Grid.Container>
-            </Checkbox.Group>
-
-            <Grid justify="center" xs={12}>
-              <Button auto onPress={() => {setRequestConfirmed(true);dataRequestConvert(requestSelected)}}>
-                confirmer
-              </Button>
-            </Grid>
-          </Grid.Container>
+              Confirmer
+            </Button>
+          </Box>
         )}
-      </Grid.Container>
-      <Grid.Container justify="center">
-        <Grid justify="center">
-          <Input
-            aria-label="rdvtime"
-            type="time"
-            labelLeft="Heure RDV"
-            onChange={(e) => {
-              setRdvTime(e.target.value);
-              console.log(e.target.value);
-            }}
-          />
-        </Grid>
-      </Grid.Container>
-      {requestConfirmed && csSelected !== "ND" && rdvTime !== "" ? (
-        <div className={styles.btn}>
-          <a
-            href="#"
+      </Grid2>
+
+      {/* Saisie de l'heure du RDV */}
+      <Grid2 xs={12} sx={{ mt: 2, textAlign: "center" }}>
+        <TextField
+          label="Heure RDV"
+          type="time"
+          value={rdvTime}
+          onChange={(e) => setRdvTime(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+        />
+      </Grid2>
+
+      {/* Bouton Envoyer ou Annuler */}
+      <Grid2 xs={12} sx={{ mt: 2, textAlign: "center" }}>
+        {requestConfirmed && csSelected !== "ND" && rdvTime !== "" ? (
+          <Button
+            variant="contained"
             onClick={() =>
               handleSubmit(carId, csSelected, dataRequestArray, rdvTime)
             }
+            className={styles.btn}
           >
             Envoyer
-          </a>
-        </div>
-      ):(
-        <div className={styles.btn}>
-          <a
-            href="#"
-            onClick={() =>
-                setEditMode("ND")
-            }
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            onClick={() => setEditMode("ND")}
+            className={styles.btn}
           >
             Annuler
-          </a>
-        </div>
-      )}
-    </Grid.Container>
+          </Button>
+        )}
+      </Grid2>
+    </Grid2>
   );
 }

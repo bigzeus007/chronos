@@ -1,51 +1,71 @@
-'use client';
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from ".././firebase";
-import styles from ".././styles/Button.module.css";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
-import Link from "next/link";
+"use client";
+import React, { useState } from "react";
+import { Button, Grid2 } from "@mui/material"; // Remplace NextUI
+import styles from "../styles/Button.module.css";
 import TakePicture from "./TakePicture";
 
-
-export default function CsChoice({ setOption, brand, rdv, }) {
+export default function CsChoice({ setOption, brand, rdv }) {
   const [csSelected, setCsSelected] = useState("ND");
 
-  return brand === "AUDI" && csSelected === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setCsSelected("AZIZ")}>
-          AZIZ
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setCsSelected("ABDEL")}>
-          ABDEL
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setCsSelected("BADR")}>
-          BADR
-        </a>
-      </div>
-    </>
-  ) : brand === "SKODA" && csSelected === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setCsSelected("SIMO")}>
-          SIMO
-        </a>
-      </div>
-    </>
-  ) : (
-    <TakePicture setOption={setOption} brand={brand} rdv={rdv} csSelected={csSelected}></TakePicture>
+  // Audi + csSelected pas encore choisi
+  if (brand === "AUDI" && csSelected === "ND") {
+    return (
+      <Grid2 container spacing={2}>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setCsSelected("AZIZ")}
+            className={styles.btn}
+          >
+            AZIZ
+          </Button>
+        </Grid2>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setCsSelected("ABDEL")}
+            className={styles.btn}
+          >
+            ABDEL
+          </Button>
+        </Grid2>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setCsSelected("BADR")}
+            className={styles.btn}
+          >
+            BADR
+          </Button>
+        </Grid2>
+      </Grid2>
+    );
+  }
+
+  // Skoda + csSelected pas encore choisi
+  if (brand === "SKODA" && csSelected === "ND") {
+    return (
+      <Grid2 container spacing={2}>
+        <Grid2>
+          <Button
+            variant="contained"
+            onClick={() => setCsSelected("SIMO")}
+            className={styles.btn}
+          >
+            SIMO
+          </Button>
+        </Grid2>
+      </Grid2>
+    );
+  }
+
+  // Sinon, on passe à la prise de photo
+  return (
+    <TakePicture
+      setOption={setOption}
+      brand={brand}
+      rdv={rdv}
+      csSelected={csSelected}
+    />
   );
 }

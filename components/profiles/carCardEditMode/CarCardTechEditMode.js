@@ -1,88 +1,41 @@
-'use client';
-import { useState, useEffect } from "react";
-import firebase from "firebase/app";
+"use client";
+import React, { useState } from "react";
 import styles from "../../../styles/Button.module.css";
-import "firebase/firestore";
-import { db, storage } from "@/firebase";
-import { collection, doc, getDocs, setDoc } from "firebase/firestore";
+import { db } from "@/firebase";
+import { collection, doc, setDoc } from "firebase/firestore";
+
+// Import MUI
 import {
+  Box,
+  Grid2,
+  Card,
+  CardMedia,
+  CardContent,
+  Typography,
   Badge,
   Button,
-  Card,
-  Checkbox,
-  Container,
-  Grid,
-  Image,
-  Input,
-  Radio,
-  Row,
-  Spacer,
-  Text,
-} from "@nextui-org/react";
-import { getStorage, ref, getDownloadURL } from "firebase/storage";
+} from "@mui/material";
 
-export default function CarCardTechEditMode({ editMode, setOption, userIn, setEditMode }) {
+export default function CarCardTechEditMode({
+  editMode,
+  setOption,
+  userIn,
+  setEditMode,
+}) {
   const car = editMode;
   const userName = userIn.userName;
- 
-  const [rdvTime, setRdvTime] = useState("");
-  const [requestSelected, setRequestSelected] = useState([]);
-  const [requestConfirmed, setRequestConfirmed] = useState(false);
 
-  const workingDate = new Date().toISOString().substring(0, 10);
-  const carsCollectionRef = collection(db, "parkingChronos");
-  const carId = car.id;
-  const [dataRequestArray, setDataRequestArray]=useState([]);
-
-  const dataRequestConvert = (array) => {
-    let dataRequestArrayInit = [];
-    for (let index = 0; index < array.length; index++) {
-      const element = array[index];
-      switch (element) {
-        case "exp":
-        dataRequestArrayInit.push({ exp: true });
-          break;
-        case "mec":
-            dataRequestArrayInit.push({ mec: true });
-          break;
-          case "dia":
-            dataRequestArrayInit.push({ dia: true });
-          break;
-        case "dev":
-            dataRequestArrayInit.push({ dev: true });
-          break;
-
-        default:
-          break;
-      }
-    }
-    setDataRequestArray(dataRequestArrayInit)
-    return dataRequestArrayInit;
-  };
-
-  const handleSubmit = async (carId, requestSelected, rdvTime) => {
+  // Exemple de fonction Firestore (si vous souhaitez l'utiliser)
+  const handleSubmit = async (carId) => {
     try {
       await setDoc(
         doc(db, "parkingChronos", carId),
         {
           step: "Prestation01",
-          restitutionTime: rdvTime,
           waitingAlerte: true,
-         
-          requestSelected: requestSelected,
-          // carStory: [
-          //     ...car.carStory,
-          //   {
-          //     qui: userName,
-          //     quoi: "traitement crdv",
-          //     date: workingDate,
-          //     time: new Date().toISOString().substring(11, 16),
-          //   },
-          // ],
+          // ...
         },
-        {
-          merge: true,
-        }
+        { merge: true }
       );
       setOption("ND");
     } catch (error) {
@@ -90,94 +43,103 @@ export default function CarCardTechEditMode({ editMode, setOption, userIn, setEd
     }
   };
 
+  // Détermine la couleur du badge
   const availabilityColor = () => {
     switch (car.waitingAlerte) {
       case false:
         return { content: "Encours", color: "success" };
-
       case true:
         return { content: "Waiting", color: "error" };
-
       default:
-        return "warning";
+        return { content: "", color: "warning" };
     }
   };
 
   return (
-    <Grid.Container justify="center">
-      <div className={styles.btn}>
-          <a
-            href="#"
-            onClick={() =>
-                setEditMode("ND")
-            }
-          >
-            Debut
-          </a>
-        </div>
-      <Grid.Container justify="center">
-        <Card css={{ width: "200px" }}>
-          <Badge
-            color={`${availabilityColor().color}`}
-            content=""
-            variant="dot"
-            css={{ p: "0" }}
-            horizontalOffset="45%"
-            verticalOffset="5%"
-          >
-            <Card.Image
-              src={car.imageUrl}
-              objectFit="cover"
-              width={200}
-              height={140}
-              alt={"loading.."}
-            />
-          </Badge>
-          <Card.Footer css={{ justifyItems: "flex-start" }}>
-            <Row wrap="wrap" justify="space-between" align="center">
-              <Text b>{car.rdv}</Text>
-              <Text
-                css={{
-                  color: "$accents7",
-                  fontWeight: "$semibold",
-                  fontSize: "$sm",
-                }}
-              >
-                Livraison : {car.restitutionTime}
-              </Text>
-            </Row>
-            <Row wrap="wrap" justify="space-between" align="center">
-              <Text b>{car.csSelected}</Text>
-              <Text
-                css={{
-                  color: "$accents7",
-                  fontWeight: "$semibold",
-                  fontSize: "$sm",
-                }}
-              >
-                Duree : {car[userIn.nom].repairTime}
-              </Text>
-            </Row>
-          </Card.Footer>
+    <Grid2 container justifyContent="center" sx={{ p: 2 }}>
+      {/* Bouton "Début" */}
+      <Grid2 xs={12} sx={{ mb: 2, textAlign: "center" }}>
+        <Button
+          variant="contained"
+          onClick={() => setEditMode("ND")}
+          className={styles.btn}
+        >
+          Début
+        </Button>
+      </Grid2>
+
+      {/* Carte affichant les infos du véhicule */}
+      <Grid2 xs={12} md={6}>
+        <Card sx={{ width: 200, mx: "auto" }}>
+          <Box sx={{ position: "relative" }}>
+            <Badge
+              variant="dot"
+              color={availabilityColor().color}
+              overlap="circular"
+              sx={{
+                position: "absolute",
+                top: 10,
+                left: 10,
+              }}
+            >
+              <CardMedia
+                component="img"
+                image={car.imageUrl}
+                alt="loading.."
+                sx={{ width: 200, height: 140, objectFit: "cover" }}
+              />
+            </Badge>
+          </Box>
+
+          <CardContent sx={{ pb: 1 }}>
+            <Grid2 container justifyContent="space-between" alignItems="center">
+              <Grid2>
+                <Typography fontWeight="bold">{car.rdv}</Typography>
+              </Grid2>
+              <Grid2>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight="600"
+                >
+                  Livraison : {car.restitutionTime}
+                </Typography>
+              </Grid2>
+            </Grid2>
+
+            <Grid2
+              container
+              justifyContent="space-between"
+              alignItems="center"
+              sx={{ mt: 1 }}
+            >
+              <Grid2>
+                <Typography fontWeight="bold">{car.csSelected}</Typography>
+              </Grid2>
+              <Grid2>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  fontWeight="600"
+                >
+                  Durée : {car[userIn.nom]?.repairTime}
+                </Typography>
+              </Grid2>
+            </Grid2>
+          </CardContent>
         </Card>
-      </Grid.Container>
-      
-      <Spacer y={1}></Spacer>
-      
-      
-      
-     
-        <div className={styles.btn}>
-          <a
-            href="#"
-            onClick={() =>
-                setEditMode("ND")
-            }
-          >
-            Annuler
-          </a>
-        </div>
-   
-    </Grid.Container>
+      </Grid2>
+
+      {/* Bouton Annuler */}
+      <Grid2 xs={12} sx={{ mt: 2, textAlign: "center" }}>
+        <Button
+          variant="contained"
+          onClick={() => setEditMode("ND")}
+          className={styles.btn}
+        >
+          Annuler
+        </Button>
+      </Grid2>
+    </Grid2>
   );
 }

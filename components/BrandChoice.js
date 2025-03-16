@@ -1,37 +1,35 @@
-'use client';
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from ".././firebase";
-import styles from ".././styles/Button.module.css";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
-
+"use client";
+import React, { useState } from "react";
+import { Grid2, Button } from "@mui/material"; // Correction : Utilisation de Grid2
 import RdvChoice from "./RdvChoice";
 
 export default function BrandChoice({ setOption }) {
   const [brand, setBrand] = useState("ND");
 
   return brand === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setBrand("AUDI")}>
+    <Grid2 container spacing={3} justifyContent="center" alignItems="center">
+      <Grid2>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setBrand("AUDI")}
+          sx={{ width: 150, height: 50, fontWeight: "bold" }}
+        >
           AUDI
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setBrand("SKODA")}>
+        </Button>
+      </Grid2>
+      <Grid2>
+        <Button
+          variant="contained"
+          color="secondary"
+          onClick={() => setBrand("SKODA")}
+          sx={{ width: 150, height: 50, fontWeight: "bold" }}
+        >
           SKODA
-        </a>
-      </div>
-    </>
+        </Button>
+      </Grid2>
+    </Grid2>
   ) : (
-    <RdvChoice setOption={setOption} brand={brand}></RdvChoice>
+    <RdvChoice setOption={setOption} brand={brand} />
   );
 }

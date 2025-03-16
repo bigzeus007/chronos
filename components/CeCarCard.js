@@ -1,32 +1,33 @@
-'use client';
-import { useState, useEffect } from "react";
-import firebase from "firebase/app";
-import "firebase/firestore";
+"use client";
+import React, { useState, useEffect } from "react";
 import { db, storage } from "@/firebase";
-import { collection, getDocs } from "firebase/firestore";
-import { Badge, Card, Grid, Image, Row, Text } from "@nextui-org/react";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 
-export default function CeCarCard({car, setEditMode}) {
-  
+// Import MUI
+import {
+  Card,
+  CardActionArea,
+  CardMedia,
+  CardContent,
+  Badge,
+  Typography,
+  Stack,
+} from "@mui/material";
 
+export default function CeCarCard({ car, setEditMode }) {
+  // Détermine la couleur du badge en fonction de car.waitingAlerte
   const availabilityColor = () => {
     switch (car.waitingAlerte) {
       case false:
-        return {content:"Encours",color:"success"};
-
+        return "success"; // "Encours"
       case true:
-        return {content:"Waiting",color:"error"};
-
-
+        return "error"; // "Waiting"
       default:
         return "warning";
     }
   };
-  
 
   const [carImage, setCarImage] = useState("");
-
   const spaceRef = ref(storage, `parkingChronos/${car.id}`);
 
   useEffect(() => {
@@ -35,48 +36,74 @@ export default function CeCarCard({car, setEditMode}) {
       .catch((err) => console.log(err));
   }, [spaceRef]);
 
-  
+  // Gère la logique du clic sur la carte
+  const handleCardClick = () => {
+    setEditMode(car);
+  };
+
   return (
-    
-    <Card isPressable onPress={()=>setEditMode(car)}>
-      { car.step==="Reception02"&&<Card.Header>
-      <Row wrap="wrap" justify="space-between" align="center">
-                <Text b>{car.csSelected}</Text>
-                <Text css={{ color: "$accents7", fontWeight: "$semibold", fontSize: "$sm" }}>
-                  RDV : {car.rdvTime}
-                </Text>
-              </Row>
+    <Card sx={{ cursor: "pointer" }} onClick={handleCardClick}>
+      {/* Si car.step === "Reception02", on affiche un "header" */}
+      {car.step === "Reception02" && (
+        <CardContent sx={{ pb: 0 }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+            flexWrap="wrap"
+          >
+            <Typography fontWeight="bold">{car.csSelected}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              RDV : {car.rdvTime}
+            </Typography>
+          </Stack>
+        </CardContent>
+      )}
 
-      </Card.Header>}
-      
-    <Badge 
-   
-    color={`${availabilityColor().color}`} content=""  variant="dot" css={{ p: "0" }}
-    horizontalOffset="45%"
-    verticalOffset="5%">
-    <Card.Image
-   
-      src={carImage}
-      
-      objectFit="cover"
-      width="100%"
-      
-      height={140}
-      alt={"loading.."}
-    />
+      <Badge
+        variant="dot"
+        color={availabilityColor()} // success, error, warning
+        overlap="circular"
+        badgeContent=""
+        // On peut personnaliser la position via anchorOrigin ou sx
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        sx={{
+          // Exemple de repositionnement (similaire aux offsets de NextUI)
+          // "& .MuiBadge-badge": { top: 10, left: 10 }
+        }}
+      >
+        <CardMedia
+          component="img"
+          image={carImage || ""}
+          alt="loading.."
+          sx={{
+            width: "100%",
+            height: 140,
+            objectFit: "cover",
+          }}
+        />
+      </Badge>
 
-
-    </Badge>
-    <Card.Footer css={{ justifyItems: "flex-start" }}>
-              <Row wrap="wrap" justify="space-between" align="center">
-                <Text color={car.rdv=="RDV"?"success":""} b>{car.rdv}</Text>
-                <Text css={{ color: "$accents7", fontWeight: "$semibold", fontSize: "$sm" }}>
-                  Arrivee : {car.arrivedAt}
-                </Text>
-              </Row>
-            </Card.Footer>
-
+      {/* Footer */}
+      <CardContent sx={{ pt: 1 }}>
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+          flexWrap="wrap"
+        >
+          <Typography
+            fontWeight="bold"
+            // Si car.rdv === "RDV", on l'affiche en vert
+            color={car.rdv === "RDV" ? "success.main" : "inherit"}
+          >
+            {car.rdv}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" fontWeight="600">
+            Arrivée : {car.arrivedAt}
+          </Typography>
+        </Stack>
+      </CardContent>
     </Card>
-    
   );
 }

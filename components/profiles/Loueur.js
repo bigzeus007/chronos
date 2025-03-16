@@ -1,58 +1,52 @@
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from "../../firebase";
+"use client";
+import React, { useEffect, useState } from "react";
+import { db } from "../../firebase";
 import styles from "../../styles/Button.module.css";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-  onSnapshot,
-} from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
+import { collection, onSnapshot } from "firebase/firestore";
 
-import DptChoice from "../DptChoice";
-import ModifierParc from "../ModifierParc";
+// Import MUI
+import { Button, Box } from "@mui/material";
 
-export default function Loueur({userIn}) {
+import DptChoice from "../DptChoice";     // Assurez-vous qu'il est migré en MUI
+import ModifierParc from "../ModifierParc"; // Assurez-vous qu'il est migré en MUI
+
+export default function Loueur({ userIn }) {
   const [option, setOption] = useState("ND");
-
   const [cars, setCars] = useState([]);
- 
 
   const parcListRef = collection(db, "parkingSAD");
-  useEffect(() => {
-    
-    const unsubscribe = onSnapshot(parcListRef, (querySnapshot) => {
-      const carsData = [];
 
-      querySnapshot.forEach((doc) => {
+  useEffect(() => {
+    const unsubscribe = onSnapshot(parcListRef, (snapshot) => {
+      const carsData = [];
+      snapshot.forEach((doc) => {
         carsData.push(doc.data());
       });
       setCars(carsData);
     });
+    return unsubscribe;
+  }, [parcListRef]);
 
-    return unsubscribe; // cleanup function
-  }, []);
-
-  return option === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("Modifier")}>
-          Modifier
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("PARC")}>Parc</a>
-      </div>
-    </>
-  ) : option === "Modifier" ? (
-    <ModifierParc setOption={setOption} cars={cars}></ModifierParc>
-  ) :option === "PARC" ? (
-    < DptChoice setOption={setOption} cars={cars}></DptChoice>
-  ) : (
-    <div>error</div>
-  );
+  if (option === "ND") {
+    return (
+      <Box>
+        <Box className={styles.btn} mb={1}>
+          <Button variant="contained" onClick={() => setOption("Modifier")}>
+            Modifier
+          </Button>
+        </Box>
+        <Box className={styles.btn}>
+          <Button variant="contained" onClick={() => setOption("PARC")}>
+            Parc
+          </Button>
+        </Box>
+      </Box>
+    );
+  } else if (option === "Modifier") {
+    return <ModifierParc setOption={setOption} cars={cars} />;
+  } else if (option === "PARC") {
+    return <DptChoice setOption={setOption} cars={cars} />;
+  } else {
+    return <div>error</div>;
+  }
 }

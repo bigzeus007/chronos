@@ -1,66 +1,90 @@
-'use client';
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from "../firebase";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
-import { Button, Grid, Loading,Spacer,Text } from "@nextui-org/react";
-import Link from "next/link";
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../firebase";
+//import EntrerButton from "@/components/EntrerButton";
+import styles from "../styles/Button.module.css";
+
+// Import MUI
+import { CircularProgress } from "@mui/material";
+
+// Import de vos composants internes
 import Pisteur from "@/components/profiles/Pisteur";
-import CPRV from "../components/profiles/CPRV";
-import Cs from "@/components/profiles/Cs";
 import CE from "@/components/profiles/CE";
 import Admin from "@/components/profiles/Admin";
-import Tech from "@/components/profiles/Tech";
-import Loueur from "@/components/profiles/Loueur";
 
 export default function NavBar({ user }) {
-  console.log(user);
-  const photoProfil =
-    auth.currentUser && auth.currentUser.photoURL
-      ? auth.currentUser.photoURL
-      : "https://firebasestorage.googleapis.com/v0/b/terminal00.appspot.com/o/cars%2Fanonymous.png?alt=media&token=1bd43fc7-0820-445a-a4bf-33bf481a6c74";
-
-  const [userIn, setUserIn] = useState({ job: "ND", userName: "Inconnu" }); // Initialize user state with default value
+  const [userIn, setUserIn] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Using useEffect hook to fetch the data
     const fetchUser = async () => {
-      // Create an async function to fetch the user data
-      const userQuery = query(
-        collection(db, "staffList"),
-        where("email", "==", `${user.email}`)
-      );
-      const querySnapshot = await getDocs(userQuery); // Fetch the data and wait for the response
+      if (user && user.email) {
+        try {
+          const userQuery = query(
+            collection(db, "staffList"),
+            where("email", "==", user.email)
+          );
+          const querySnapshot = await getDocs(userQuery);
 
-      if (!querySnapshot.empty) {
-        // Check if querySnapshot is not empty
-        const userData = querySnapshot.docs[0].data(); // Get user data from the first document
-        setUserIn(userData); // Update the user state with fetched data
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data();
+            setUserIn(userData);
+          } else {
+            console.error("Utilisateur non trouvé dans staffList.");
+          }
+        } catch (error) {
+          console.error("Erreur Firebase:", error);
+        }
+      } else {
+        console.warn("Objet user indisponible ou email manquant.");
       }
+      setLoading(false);
     };
 
-    fetchUser(); // Call the async function to fetch the user data
-  }, [user]); // Run this effect only on initial render
+    if (user) {
+      fetchUser();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // if (!user) {
+  //   return (
+  //     <div className={styles.body}>
+  //       <div className={styles.container}>
+  //         <p>Veuillez vous connecter</p>
+  //         <EntrerButton />
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <CircularProgress color="primary" />
+        <p className="mt-2">Chargement de l'utilisateur...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center mt-10 text-xl text-red-500">
+        Impossible de charger le profil.
+      </div>
+    );
+  }
 
   return (
     <>
-    {userIn.job==="Loueur"&&<Loueur userIn={userIn}></Loueur>}
-    {userIn.job==="ND"&&<Grid.Container gap={2} justify="center"><Text color="error" size="x-large" >Adresse email Inconnue. </Text><Spacer y={2}></Spacer><Text color="warning" size="x-large" >Waiting for approval... </Text></Grid.Container>}
-    {userIn.job==="SECURITY"&&<Pisteur userIn={userIn}></Pisteur>}
-    {userIn.job==="CE"&&<CE userIn={userIn}></CE>}
-    {userIn.job==="CPRV"&&<CPRV userIn={userIn}></CPRV>}
-    {userIn.job==="CS"&&<Cs userIn={userIn}></Cs>}
-    {userIn.job==="Tech"&&<Tech userIn={userIn}></Tech>}
-    {userIn.job==="Admin"&&<Admin userIn={userIn}></Admin>}
-
-
+      {userIn.job === "Loueur" && <div>Profil Loueur</div>}
+      {userIn.job === "SECURITY" && <Pisteur userIn={user} />}
+      {userIn.job === "CE" && <CE userIn={user} />}
+      {userIn.job === "Admin" && <Admin userIn={user} />}
+      {/* Ajoutez d'autres cas métier ici */}
     </>
   );
 }

@@ -1,44 +1,42 @@
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from "../../firebase";
+"use client";
+import React, { useState } from "react";
 import styles from "../../styles/Button.module.css";
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
-import Link from "next/link";
-import TakePicture from "../TakePicture";
-import BrandChoice from "../BrandChoice";
-import PisteurParc from "../PisteurParc";
+
+// Import MUI
+import { Button, Box } from "@mui/material";
+
+import BrandChoice from "../BrandChoice";   // Assurez-vous qu'il est migré vers MUI
+import PisteurParc from "../PisteurParc";   // Assurez-vous qu'il est migré vers MUI
 
 export default function Pisteur() {
   const [option, setOption] = useState("ND");
 
-
-
-
-
-  return option === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("ENTREE")}>
-          Entrée
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("PARC")}>Parc</a>
-      </div>
-    </>
-  ) : option === "ENTREE" ? (
-    <BrandChoice setOption={setOption}></BrandChoice>
-  ) :option === "PARC" ? (
-    < PisteurParc setOption={setOption} ></PisteurParc>
-  ) : (
-    <div>error</div>
-  );
+  if (option === "ND") {
+    return (
+      <Box>
+        <Box className={styles.btn} mb={1}>
+          <Button
+            variant="contained"
+            onClick={() => setOption("ENTREE")}
+          >
+            Entrée
+          </Button>
+        </Box>
+        <Box className={styles.btn}>
+          <Button
+            variant="contained"
+            onClick={() => setOption("PARC")}
+          >
+            Parc
+          </Button>
+        </Box>
+      </Box>
+    );
+  } else if (option === "ENTREE") {
+    return <BrandChoice setOption={setOption} />;
+  } else if (option === "PARC") {
+    return <PisteurParc setOption={setOption} />;
+  } else {
+    return <div>error</div>;
+  }
 }

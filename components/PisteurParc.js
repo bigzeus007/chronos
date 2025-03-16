@@ -1,125 +1,85 @@
+"use client";
 import React, { useEffect, useState } from "react";
-import styles from "../styles/Button.module.css";
-import {
-  Grid,
-  Container,
-  Image,
-  Card,
-  Spacer,
-  Text,
-  Row,
-  Col,
-  Button,
-  Badge,
-  Avatar,
-} from "@nextui-org/react";
-import "firebase/firestore";
-import { db, storage } from "../firebase";
-import {
-  collection,
-  getDocs,
-  orderBy,
-  onSnapshot,
-  doc,
-  query,
-  where,
-} from "firebase/firestore";
+import { db } from "../firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+
+// Import MUI
+import { Container, Typography, Button } from "@mui/material";
+import { Grid2 } from "@mui/material"; // ✅ Correction : utiliser Grid2
+
+// Import du composant CarCard déjà migré vers MUI
 import CarCard from "./CarCard";
 
-export default function PisteurParc({setOption}){
-  
-
-  function csBadgeColor(key) {
-    let csCovert = "";
-    switch (key) {
-      case "AZIZ":
-        csCovert = "purple";
-        break;
-      case "ABDEL":
-        csCovert = "green";
-        break;
-      case "BADR":
-        csCovert = "orange";
-        break;
-      case "SIMO":
-        csCovert = "blue";
-        break;
-      case "ND":
-        csCovert = "red";
-        break;
-
-      default:
-        csCovert = "gray";
-        break;
-    }
-    return csCovert;
-  }
-
-  const emptyPlace = {
-    csSelected: "ND",
-    rdv: "ND",
-    lavage: "ND",
-    note: "",
-    date: "",
-    imageUrl: "https://via.placeholder.com/320x180",
-  };
-
+export default function PisteurParc({ setOption }) {
   const [cars, setCars] = useState([]);
   const [carsWaiting, setCarsWaiting] = useState([]);
 
   const parcListRef = collection(db, "parkingChronos");
+
   useEffect(() => {
-    const queryCarsTimeless = query(parcListRef, where("step", "==", "Reception01"));
-    const unsubscribe = onSnapshot(queryCarsTimeless, (querySnapshot) => {
+    const queryCars = query(
+      parcListRef,
+      where("step", "in", ["Reception01", "Reception02"])
+    );
+
+    const unsubscribe = onSnapshot(queryCars, (snapshot) => {
       const carsData = [];
+      const carsWaitingData = [];
 
-      querySnapshot.forEach((doc) => {
-        carsData.push(doc.data());
+      snapshot.forEach((doc) => {
+        const car = doc.data();
+        if (car.step === "Reception01") {
+          carsData.push(car);
+        } else if (car.step === "Reception02") {
+          carsWaitingData.push(car);
+        }
       });
+
       setCars(carsData);
+      setCarsWaiting(carsWaitingData);
     });
 
-    return unsubscribe; // cleanup function
+    return unsubscribe;
   }, []);
-  useEffect(() => {
-    const queryCarsWaiting = query(parcListRef, where("step", "==", "Reception02"));
-    const unsubscribe = onSnapshot(queryCarsWaiting, (querySnapshot) => {
-      const carsDataWaiting = [];
 
-      querySnapshot.forEach((doc) => {
-        carsDataWaiting.push(doc.data());
-      });
-      setCarsWaiting(carsDataWaiting);
-    });
+  return (
+    <Container>
+      <Grid2 container spacing={0.5} justifyContent="center">
+        {/* Liste des véhicules non affectés */}
+        <Grid2 xs={12}>
+          <Typography variant="h6" color="white" sx={{ mb: 1 }}>
+            Liste des véhicules non affectés
+          </Typography>
+        </Grid2>
+        {cars.map((car) => (
+          <Grid2 key={car.id} xs={12} sm={6} md={4} lg={3}>
+            <CarCard car={car} />
+          </Grid2>
+        ))}
+      </Grid2>
 
-    return unsubscribe; // cleanup function
-  }, [parcListRef]);
-  console.log(cars,carsWaiting)
+      <Grid2 container spacing={0.5} justifyContent="center" sx={{ mt: 2 }}>
+        {/* Liste des véhicules affectés (Reception02) */}
+        {carsWaiting.length !== 0 && (
+          <Grid2 xs={12}>
+            <Typography variant="h6" color="white" sx={{ mb: 1 }}>
+              Liste des véhicules affectés
+            </Typography>
+          </Grid2>
+        )}
+        {carsWaiting.map((car) => (
+          <Grid2 key={car.id} xs={12} sm={6} md={4} lg={3}>
+            <CarCard car={car} />
+          </Grid2>
+        ))}
+      </Grid2>
 
-  return (<Container justify="center">
-    <Grid.Container gap={0.5} >
-      <Grid xs={24} justify="center">
-      <Text size="$md" color="white">Liste des vehicules non affectés</Text>
-      </Grid>
-      {cars.map((car)=><Grid key={car.id} >
-        <CarCard car={car}></CarCard>
-      </Grid>)}
-    </Grid.Container>
-    <Grid.Container>
-    <Grid xs={24} justify="center">
-      {carsWaiting.length!==0&&<Text size="$md" color="white">Liste des vehicules affectés</Text>}
-      </Grid>
-      {carsWaiting.map((car)=><Grid key={car.id} >
-        <CarCard car={car}></CarCard>
-      </Grid>)}
-    </Grid.Container>
-   <Grid.Container justify="center">
-    <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("ND")}>
-        RETOUR
-        </a>
-      </div>
-      </Grid.Container>
-
-  </Container>);
-};
+      {/* Bouton RETOUR */}
+      <Grid2 container justifyContent="center" sx={{ mt: 2 }}>
+        <Button variant="contained" onClick={() => setOption("ND")}>
+          RETOUR
+        </Button>
+      </Grid2>
+    </Container>
+  );
+}

@@ -1,20 +1,6 @@
-'use client';
+"use client";
 import React, { useEffect, useState } from "react";
 import styles from "../styles/Button.module.css";
-import {
-  Grid,
-  Container,
-  Image,
-  Card,
-  Spacer,
-  Text,
-  Row,
-  Col,
-  Button,
-  Badge,
-  Avatar,
-} from "@nextui-org/react";
-import "firebase/firestore";
 import { db, storage } from "../firebase";
 import {
   collection,
@@ -25,15 +11,18 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import CarCard from "./CarCard";
+
+// Import MUI
+import { Container, Grid2, Typography, Button } from "@mui/material";
+
+import CarCard from "./CarCard"; // Assurez-vous que CarCard est migré vers MUI
 import CarCardCsEditMode from "./profiles/carCardEditMode/CarCardCsEditMode";
 
-export default function CsWaiting({setOption,carsWaiting,userIn }){
-  const cars=carsWaiting;
+export default function CsWaiting({ setOption, carsWaiting, userIn }) {
+  const cars = carsWaiting;
+  const [editMode, setEditMode] = useState("ND");
 
-  const [editMode, setEditMode]=useState("ND")
-  
-
+  // Fonction de couleur (optionnelle, si utilisée ailleurs)
   function csBadgeColor(key) {
     let csCovert = "";
     switch (key) {
@@ -52,7 +41,6 @@ export default function CsWaiting({setOption,carsWaiting,userIn }){
       case "ND":
         csCovert = "red";
         break;
-
       default:
         csCovert = "gray";
         break;
@@ -60,26 +48,48 @@ export default function CsWaiting({setOption,carsWaiting,userIn }){
     return csCovert;
   }
 
+  if (editMode === "ND") {
+    return (
+      <Container>
+        {/* Titre */}
+        <Grid2 container spacing={0.5} justifyContent="center">
+          <Grid2 xs={12}>
+            <Typography variant="h6" color="white">
+              Suivi des ORs
+            </Typography>
+          </Grid2>
 
-  return editMode==="ND"?(<Container justify="center">
-    
-    <Grid.Container gap={0.5} >
-      <Grid xs={24} justify="center">
-      <Text size="$md" color="white"> Suivi des ORs </Text>
-      </Grid>
-      <Grid.Container gap={2} justify="flex-start">
-      {cars.map((car)=><Grid xs={6} sm={3} key={car.id}>
-        <CarCard car={car} setEditMode={setEditMode}></CarCard>
-      </Grid>)}
-      </Grid.Container>
-    </Grid.Container>
-   <Grid.Container justify="center">
-    <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("ND")}>
-        RETOUR
-        </a>
-      </div>
-      </Grid.Container>
+          {/* Liste des voitures */}
+          <Grid2 container spacing={2} justifyContent="flex-start">
+            {cars.map((car) => (
+              <Grid2 xs={6} sm={3} key={car.id}>
+                <CarCard car={car} setEditMode={setEditMode} />
+              </Grid2>
+            ))}
+          </Grid2>
+        </Grid2>
 
-  </Container>):(<CarCardCsEditMode editMode={editMode} setOption={setOption} userIn={userIn} setEditMode={setEditMode} ></CarCardCsEditMode>);
-};
+        {/* Bouton de retour */}
+        <Grid2 container justifyContent="center" sx={{ mt: 2 }}>
+          <Button
+            variant="contained"
+            onClick={() => setOption("ND")}
+            className={styles.btn} // si vous voulez conserver un style personnalisé
+          >
+            RETOUR
+          </Button>
+        </Grid2>
+      </Container>
+    );
+  }
+
+  // Si on est en mode édition, on affiche le composant dédié
+  return (
+    <CarCardCsEditMode
+      editMode={editMode}
+      setOption={setOption}
+      userIn={userIn}
+      setEditMode={setEditMode}
+    />
+  );
+}

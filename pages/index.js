@@ -1,20 +1,23 @@
-'use client';
+"use client";
 
-import { CircularProgress } from "@nextui-org/react";
+import React from "react";
 import { auth } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import NavBar from "./NavBar"; 
-import styles from '../styles/Home.module.css';
+import NavBar from "./NavBar";
+import styles from "../styles/Button.module.css";
+import EntrerButton from "@/components/EntrerButton";
+
+// Import du CircularProgress MUI
+import { CircularProgress } from "@mui/material";
 
 export default function Home() {
   const [user, loading, error] = useAuthState(auth);
-  console.log("we are starting");
 
   if (loading) {
     return (
       <div className={styles.body}>
         <div className={styles.container}>
-          <CircularProgress color="primary" aria-label="Loading..." />
+          <CircularProgress color="primary" />
         </div>
       </div>
     );
@@ -25,7 +28,7 @@ export default function Home() {
       <div className={styles.body}>
         <div className={styles.container}>
           <span className="text-red-500">
-            Erreur d&apos;authentification : {error.message}
+            Erreur d'authentification : {error.message}
           </span>
         </div>
       </div>
@@ -34,10 +37,20 @@ export default function Home() {
 
   return (
     <div>
-      <NavBar />
+      {user&&<p>Bienvenue {user.displayName}</p>}
       <div className={styles.body}>
         <div className={styles.container}>
-          {user ? <p>Bienvenue {user.displayName}</p> : <p>Veuillez vous connecter</p>}
+          {user ? (
+            
+            <NavBar user={user} />
+          ) : (
+            <div className={styles.body}>
+              <div className={styles.container}>
+                <p>Veuillez vous connecter</p>
+                <EntrerButton />
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

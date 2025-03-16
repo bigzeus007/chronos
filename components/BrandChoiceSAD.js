@@ -1,8 +1,8 @@
-'use client';
-import { useEffect } from "react";
-import { useState } from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import { auth, db } from "../firebase";
-import styles from ".././styles/Button.module.css";
+import styles from "../styles/Button.module.css";
+
 import {
   collection,
   getDocs,
@@ -11,51 +11,70 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
+
+// On utilise MUI
+import { Button, Grid2 } from "@mui/material";
 
 import RdvChoice from "./RdvChoice";
 import CarCardSAD from "./CarCardSAD";
 
-export default function BrandChoiceSAD({ editMode, setOption, setEditMode, dpt }) {
+export default function BrandChoiceSAD({
+  editMode,
+  setOption,
+  setEditMode,
+  dpt,
+}) {
   const [brand, setBrand] = useState("ND");
-  const [carInit, setCarInit] = useState({
-    
-  });
+  const [carInit, setCarInit] = useState({});
 
   return brand === "ND" ? (
-    <>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setEditMode({
-    dpt: dpt,
-    brand:"AUDI",
-    photoUrl: "../public/AddSADCars.jpg",
-    km:0,
-    model:"",
-    carburant:0,
-    imm:"Immatriculation",
-  })}>
+    <Grid2 container spacing={2}>
+      <Grid2>
+        <Button
+          variant="contained"
+          onClick={() =>
+            setEditMode({
+              dpt: dpt,
+              brand: "AUDI",
+              photoUrl: "../public/AddSADCars.jpg",
+              km: 0,
+              model: "",
+              carburant: 0,
+              imm: "Immatriculation",
+            })
+          }
+          className={styles.btn} // Si tu souhaites garder des styles personnalisés
+        >
           AUDI
-        </a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setEditMode({
-          id:"../public/AddSADCars.jpg",
-    dpt: dpt,
-    brand:"SKODA",
-    photoUrl: "https://firebasestorage.googleapis.com/v0/b/terminal00.appspot.com/o/parkingSAD%2FAddSADCars.jpg?alt=media&token=e135e3e1-41f9-4064-8f9f-f5f611b37067",
-    km:0,
-    model:"",
-    carburant:0,
-    imm:"Immatriculation",
-  })}>
+        </Button>
+      </Grid2>
+      <Grid2>
+        <Button
+          variant="contained"
+          onClick={() =>
+            setEditMode({
+              id: "../public/AddSADCars.jpg",
+              dpt: dpt,
+              brand: "SKODA",
+              photoUrl:
+                "https://firebasestorage.googleapis.com/v0/b/terminal00.appspot.com/o/parkingSAD%2FAddSADCars.jpg?alt=media&token=e135e3e1-41f9-4064-8f9f-f5f611b37067",
+              km: 0,
+              model: "",
+              carburant: 0,
+              imm: "Immatriculation",
+            })
+          }
+          className={styles.btn}
+        >
           SKODA
-        </a>
-      </div>
-    </>
+        </Button>
+      </Grid2>
+    </Grid2>
   ) : (
-    <CarCardSAD editMode={editMode}
-    setOption={setOption}
-    setEditMode={setEditMode}
-    ></CarCardSAD>
+    <CarCardSAD
+      editMode={editMode}
+      setOption={setOption}
+      setEditMode={setEditMode}
+    />
   );
 }

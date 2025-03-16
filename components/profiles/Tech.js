@@ -1,104 +1,68 @@
-import { useEffect } from "react";
-import { useState } from "react";
-import { auth, db } from "../../firebase";
+"use client";
+import React, { useEffect, useState } from "react";
+import { db } from "../../firebase";
 import styles from "../../styles/Button.module.css";
 import {
   collection,
-  getDocs,
-  getDoc,
-  doc,
   query,
   where,
-  onSnapshot,
   orderBy,
+  onSnapshot,
 } from "firebase/firestore";
-import { Button, Grid, Loading } from "@nextui-org/react";
-import Link from "next/link";
-import TakePicture from "../TakePicture";
-import BrandChoice from "../BrandChoice";
-import PisteurParc from "../PisteurParc";
-import CrdvNouveaux from "../CrdvNouveaux";
-import CrdvWaiting from "../CrdvWaiting";
-import CsWaiting from "../CsWaiting";
-import CsNouveaux from "../CsNouveaux";
+
+// Import MUI
+import { Button, Box } from "@mui/material";
+
+// Assurez-vous que TechWaiting et CsWaiting soient également migrés vers MUI
 import TechWaiting from "../TechWaiting";
+import CsWaiting from "../CsWaiting";
 
-export default function Tech({userIn}) {
+export default function Tech({ userIn }) {
   const [option, setOption] = useState("ND");
-  function csBadgeColor(key) {
-    let csCovert = "";
-    switch (key) {
-      case "AZIZ":
-        csCovert = "purple";
-        break;
-      case "ABDEL":
-        csCovert = "green";
-        break;
-      case "BADR":
-        csCovert = "orange";
-        break;
-      case "SIMO":
-        csCovert = "blue";
-        break;
-      case "ND":
-        csCovert = "red";
-        break;
-
-      default:
-        csCovert = "gray";
-        break;
-    }
-    return csCovert;
-  }
-
-  const emptyPlace = {
-    csSelected: "ND",
-    rdv: "ND",
-    lavage: "ND",
-    note: "",
-    date: "", 
-    imageUrl: "https://via.placeholder.com/320x180",
-  };
-
   const [cars, setCars] = useState([]);
- 
 
   const parcListRef = collection(db, "parkingChronos");
-  useEffect(() => {
-    const queryCarsTimeless = query(parcListRef, where("techTeamsUpdated", "array-contains", `${userIn.nom}` ),orderBy("rdvTime","asc"));
-    const unsubscribe = onSnapshot(queryCarsTimeless, (querySnapshot) => {
-      const carsData = [];
 
-      querySnapshot.forEach((doc) => {
+  // Charger la liste des véhicules pour lesquels le tech en cours (userIn.nom) est présent dans techTeamsUpdated
+  useEffect(() => {
+    const q = query(
+      parcListRef,
+      where("techTeamsUpdated", "array-contains", userIn.nom),
+      orderBy("rdvTime", "asc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const carsData = [];
+      snapshot.forEach((doc) => {
         carsData.push(doc.data());
       });
       setCars(carsData);
     });
 
-    return unsubscribe; // cleanup function
-  }, []);
- 
+    return unsubscribe; // cleanup
+  }, [parcListRef, userIn.nom]);
 
-
-
-
-  return option === "ND" ? (
-    <>
-    <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("WAITING")}>En attente</a>
-      </div>
-      <div className={styles.btn}>
-        <a href="#" onClick={() => setOption("NOUVEAUX")}>
-          RAS
-        </a>
-      </div>
-      
-    </>
-  ) : option === "WAITING" ? (
-    <TechWaiting setOption={setOption} cars={cars} userIn={userIn}></TechWaiting>
-  ) :option === "NOUVEAUX" ? (
-    < CsWaiting setOption={setOption}  cars={cars} userIn={userIn} ></CsWaiting>
-  ) : (
-    <div>error</div>
-  );
+  if (option === "ND") {
+    return (
+      <Box>
+        <Box className={styles.btn} mb={1}>
+          <Button variant="contained" onClick={() => setOption("WAITING")}>
+            En attente
+          </Button>
+        </Box>
+        <Box className={styles.btn}>
+          <Button variant="contained" onClick={() => setOption("NOUVEAUX")}>
+            RAS
+          </Button>
+        </Box>
+      </Box>
+    );
+  } else if (option === "WAITING") {
+    // Affiche TechWaiting
+    return <TechWaiting setOption={setOption} cars={cars} userIn={userIn} />;
+  } else if (option === "NOUVEAUX") {
+    // Affiche CsWaiting (même si le nom “NOUVEAUX” fait penser qu’on pourrait afficher un composant “TechNouveaux”)
+    return <CsWaiting setOption={setOption} cars={cars} userIn={userIn} />;
+  } else {
+    return <div>error</div>;
+  }
 }
